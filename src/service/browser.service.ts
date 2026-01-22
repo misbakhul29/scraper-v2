@@ -44,7 +44,7 @@ export class BrowserService {
 
   public async getMainPage(): Promise<Page> {
     const browser = await puppeteer.connect({
-      browserURL: `http://127.0.0.1:${DEBUG_PORT}`,
+      browserURL: `ws://127.0.0.1:${DEBUG_PORT}`,
       defaultViewport: null,
     });
 
