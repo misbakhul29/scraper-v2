@@ -11,6 +11,7 @@ import dotenv from 'dotenv';
 import { env } from './config/env';
 import { imageRouter } from './routes/image/route';
 import { rateLimit } from './middleware/rate-limit';
+import cors from 'cors';
 
 dotenv.config();
 
@@ -25,6 +26,12 @@ if (fs.existsSync(swaggerPath)) {
   const fileContent = fs.readFileSync(swaggerPath, 'utf-8');
   swaggerFile = JSON.parse(fileContent);
 }
+
+app.use(cors({
+    origin: '*', 
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 app.use(express.json());
 

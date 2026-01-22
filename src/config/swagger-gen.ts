@@ -13,6 +13,10 @@ async function generateOpenAPI() {
     absolute: true    
   });
 
+  const serverUrl = env.NODE_ENV === 'production' 
+  ? `https://${env.PROD_HOST}`
+  : `http://${env.HOST}:${env.PORT}`;
+
   if (routeFiles.length === 0) {
     console.warn('⚠️ No .openapi.ts files found in src/routes!');
   }
@@ -33,7 +37,10 @@ async function generateOpenAPI() {
       version: '1.0.0',
       description: 'Dokumentasi otomatis dari Zod Schema',
     },
-    servers: [{ url: `http://${env.HOST}:${env.PORT}` }],
+    servers: [{ 
+      url: serverUrl,
+      description: env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
+     }],
   });
 
   const outputPath = path.join(process.cwd(), 'data', 'swagger', 'swagger-output.json');
