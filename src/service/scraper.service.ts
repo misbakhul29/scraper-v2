@@ -6,12 +6,13 @@ import * as fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { env } from '../config/env';
 import { production } from '../lib/node-env';
+import { ImageHelper } from '../helper/img-converter';
 
 export class AiScraperService {
 
   public async generateContent(prompt: string): Promise<string> {
     console.log('[AiScraper] Starting content generation task...');
-    
+
     try {
       const page = await browserService.getMainPage();
       console.log('[AiScraper] Attached to main page.');
@@ -34,36 +35,36 @@ export class AiScraperService {
       const editorSelector = SCRAPER_CONFIG.PROMPT_INPUT_SELECTOR;
       console.log('[AiScraper] Waiting for input field...');
       await page.waitForSelector(editorSelector, { timeout: 10000 });
-      
+
       console.log('[AiScraper] Pasting prompt...');
       await page.focus(editorSelector);
-      
+
       await page.evaluate((text) => {
         navigator.clipboard.writeText(text);
       }, prompt);
 
       const isMac = process.platform === 'darwin';
       const modifier = isMac ? 'Meta' : 'Control';
-      
+
       await page.keyboard.down(modifier);
       await page.keyboard.press('V');
       await page.keyboard.up(modifier);
-      
+
       await new Promise(r => setTimeout(r, 800));
-      
+
       console.log('[AiScraper] Sending prompt (Enter)...');
       await page.keyboard.press('Enter');
 
       console.log('[AiScraper] Waiting for response generation (Voice Button signal)...');
-      await page.waitForSelector(SCRAPER_CONFIG.VOICE_BTN_SELECTOR, { 
-        visible: true, 
-        timeout: 180000 
+      await page.waitForSelector(SCRAPER_CONFIG.VOICE_BTN_SELECTOR, {
+        visible: true,
+        timeout: 180000
       });
       console.log('[AiScraper] Response generation complete.');
 
       const copyBtnSelector = SCRAPER_CONFIG.COPY_BTN_SELECTOR;
       console.log('[AiScraper] Waiting for Copy button to be ready...');
-      
+
       await page.waitForFunction((selector: any) => {
         const buttons = document.querySelectorAll(selector);
         const lastBtn = buttons[buttons.length - 1] as HTMLButtonElement;
@@ -74,12 +75,12 @@ export class AiScraperService {
 
       const copyButtons = await page.$$(copyBtnSelector);
       const lastCopyBtn = copyButtons[copyButtons.length - 1];
-      
+
       if (!lastCopyBtn) throw new Error('Copy button not found');
-      
+
       console.log('[AiScraper] Clicking Copy button...');
       await lastCopyBtn.click();
-      
+
       await new Promise(r => setTimeout(r, 1000));
 
       console.log('[AiScraper] Reading content from clipboard...');
@@ -94,16 +95,16 @@ export class AiScraperService {
     }
   }
 
-  public async generateImage(prompt: string): Promise<string> {
+  public async generateImage(prompt: string, webpFormat?: boolean, imageMaxSizeKB?: number): Promise<string> {
     console.log('[AiScraper] Starting IMAGE generation task...');
-    
+
     const repoRoot = process.cwd();
     let finalDir: string;
 
     if (env.NODE_ENV === production) {
-        finalDir = '/var/www/scraper-v2/content/images';
+      finalDir = '/var/www/scraper-v2/content/images';
     } else {
-        finalDir = path.join(process.cwd(), 'content', 'images');
+      finalDir = path.join(process.cwd(), 'content', 'images');
     }
 
     if (!fs.existsSync(finalDir)) {
@@ -143,44 +144,44 @@ export class AiScraperService {
       const editorSelector = SCRAPER_CONFIG.PROMPT_INPUT_SELECTOR;
       console.log('[AiScraper] Waiting for input field...');
       await page.waitForSelector(editorSelector, { timeout: 10000 });
-      
+
       console.log('[AiScraper] Pasting prompt...');
       await page.focus(editorSelector);
-      
+
       await page.evaluate((text) => {
         navigator.clipboard.writeText(text);
       }, prompt);
 
       const isMac = process.platform === 'darwin';
       const modifier = isMac ? 'Meta' : 'Control';
-      
+
       await page.keyboard.down(modifier);
       await page.keyboard.press('V');
       await page.keyboard.up(modifier);
-      
-      await new Promise(r => setTimeout(r, 800)); 
-      
+
+      await new Promise(r => setTimeout(r, 800));
+
       console.log('[AiScraper] Sending prompt (Enter)...');
       await page.keyboard.press('Enter');
 
       console.log('[AiScraper] Waiting for generation to finish (Download signal)...');
-      await page.waitForSelector(SCRAPER_CONFIG.DOWNLOAD_BTN_SELECTOR, { 
-        visible: true, 
-        timeout: 240000 
+      await page.waitForSelector(SCRAPER_CONFIG.DOWNLOAD_BTN_SELECTOR, {
+        visible: true,
+        timeout: 240000
       });
       console.log('[AiScraper] Generation complete signal received.');
 
-      await new Promise(r => setTimeout(r, 2000)); 
+      await new Promise(r => setTimeout(r, 2000));
 
       console.log('[AiScraper] Looking for Download button...');
       await this.clickElement(page, SCRAPER_CONFIG.DOWNLOAD_BTN_SELECTOR);
       console.log('[AiScraper] Download clicked. Polling temp folder...');
 
-      const finalFilePath = await this.handleDownloadedFile(TEMP_DOWNLOAD_DIR, finalDir);
-      
+      const finalFilePath = await this.handleDownloadedFile(TEMP_DOWNLOAD_DIR, finalDir, imageMaxSizeKB, webpFormat);
+
       const relativePath = path.relative(repoRoot, finalFilePath);
       console.log(`[AiScraper] Image saved successfully: ${relativePath}`);
-      
+
       return relativePath;
 
     } catch (error) {
@@ -189,57 +190,89 @@ export class AiScraperService {
     }
   }
 
-  private async handleDownloadedFile(sourceDir: string, destDir: string, timeout = 60000): Promise<string> {
+  private async handleDownloadedFile(
+    sourceDir: string,
+    destDir: string,
+    imageMaxSizeKB?: number,
+    webpFormat?: boolean,
+    timeout = 60000
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       const startTime = Date.now();
-      
-      const checkInterval = setInterval(() => {
+
+      const checkInterval = setInterval(async () => { 
         if (Date.now() - startTime > timeout) {
           clearInterval(checkInterval);
           reject(new Error('Download timeout: No new file detected in temp folder.'));
+          return;
         }
 
         let files: string[] = [];
         try {
-            files = fs.readdirSync(sourceDir);
+          files = fs.readdirSync(sourceDir);
         } catch (e) {
-            return; 
+          return;
         }
 
-        const validFiles = files.filter(file => 
-            !file.endsWith('.crdownload') && 
-            !file.endsWith('.tmp') &&
-            (file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.webp'))
+        const validFiles = files.filter(file =>
+          !file.endsWith('.crdownload') &&
+          !file.endsWith('.tmp') &&
+          (file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.webp'))
         );
-        
+
         if (validFiles.length > 0) {
-            const newestFile = validFiles.map(fileName => {
-                const filePath = path.join(sourceDir, fileName);
-                return {
-                    name: fileName,
-                    time: fs.statSync(filePath).mtime.getTime(),
-                    path: filePath
-                };
-            }).sort((a, b) => b.time - a.time)[0];
+          const newestFile = validFiles.map(fileName => {
+            const filePath = path.join(sourceDir, fileName);
+            return {
+              name: fileName,
+              time: fs.statSync(filePath).mtime.getTime(),
+              path: filePath
+            };
+          }).sort((a, b) => b.time - a.time)[0];
 
-            if (Date.now() - newestFile.time < 60000) {
-                clearInterval(checkInterval);
+          if (Date.now() - newestFile.time < 60000) {
+            clearInterval(checkInterval); 
 
-                const ext = path.extname(newestFile.name); 
-                const newName = `image-${uuidv4()}${ext}`; 
-                const finalPath = path.join(destDir, newName);
+            try {
+              let finalPath = '';
 
-                try {
-                    fs.renameSync(newestFile.path, finalPath);
-                    console.log(`[File] Moved & Renamed "${newestFile.name}" -> "${newName}"`);
-                    resolve(finalPath);
-                } catch (err) {
-                    console.error('Failed to move file:', err);
-                    reject(err);
-                }
+              if (imageMaxSizeKB) {
+                const newName = `image-${uuidv4()}.webp`;
+                finalPath = path.join(destDir, newName);
+
+                console.log(`[Process] Compressing ${newestFile.name} to <${imageMaxSizeKB}KB...`);
+                await ImageHelper.compressToSize(newestFile.path, finalPath, imageMaxSizeKB);
+
+                fs.unlinkSync(newestFile.path);
+
+              } else if (webpFormat) {
+                const newName = `image-${uuidv4()}.webp`;
+                finalPath = path.join(destDir, newName);
+
+                console.log(`[Process] Converting ${newestFile.name} to WebP...`);
+                await ImageHelper.convertToWebP(newestFile.path, finalPath);
+
+                fs.unlinkSync(newestFile.path);
+
+              } else {
+                const ext = path.extname(newestFile.name);
+                const newName = `image-${uuidv4()}${ext}`;
+                finalPath = path.join(destDir, newName);
+
+                console.log(`[Process] Moving raw file ${newestFile.name}...`);
+                fs.renameSync(newestFile.path, finalPath);
+              }
+
+              console.log(`[Success] Saved to "${finalPath}"`);
+              resolve(finalPath);
+
+            } catch (err) {
+              console.error('Failed to process image:', err);
+              reject(err);
             }
+          }
         }
-      }, 1000); 
+      }, 1000);
     });
   }
 
@@ -255,8 +288,8 @@ export class AiScraperService {
         const elements = await page.$$(`xpath/${selector}`);
         element = elements[0];
       } catch (e) {
-         console.warn("XPath wait failed, trying evaluation match...");
-         throw e;
+        console.warn("XPath wait failed, trying evaluation match...");
+        throw e;
       }
     } else {
       await page.waitForSelector(selector, { timeout, visible: true });
