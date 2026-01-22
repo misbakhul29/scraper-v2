@@ -97,6 +97,7 @@ export class BrowserService {
     const args = [
       '--remote-debugging-port=' + DEBUG_PORT,
       '--no-first-run',
+      '--no-sandbox',
       '--no-default-browser-check',
       '--user-data-dir=' + USER_DATA_DIR,
       '--window-size=1280,1024',
