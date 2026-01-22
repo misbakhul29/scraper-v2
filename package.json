@@ -6,7 +6,7 @@
   "scripts": {
     "test": "dotenv ts-node src/index.ts",
     "dev": "nodemon",
-    "build": "tsc",
+    "build": "pnpm swagger && tsc",
     "start": "dotenv node dist/index.js",
     "swagger": "ts-node src/config/swagger-gen.ts",
     "prepare": "dotenv ts-node src/config/prepare_session.ts"
