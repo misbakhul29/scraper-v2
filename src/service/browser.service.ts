@@ -44,7 +44,7 @@ export class BrowserService {
 
   public async getMainPage(): Promise<Page> {
     const browser = await puppeteer.connect({
-      browserURL: `ws://127.0.0.1:${DEBUG_PORT}`,
+      browserURL: `http://127.0.0.1:${DEBUG_PORT}`,
       defaultViewport: null,
     });
 
@@ -114,14 +114,34 @@ export class BrowserService {
     } else {
       this.browserProcess = spawn('xvfb-run', [
         '-a', 
-        '--server-args="-screen 0 1280x1024x24"', 
+        '--server-args=-screen 0 1280x1024x24', 
         CHROME_PATH, 
         ...args
-      ], { detached: true, stdio: 'ignore' });
+      ], { 
+        detached: true, 
+        stdio: 'inherit' 
+      });
     }
 
-    console.log('Waiting for Chrome to launch...');
-    await new Promise(r => setTimeout(r, 5000));
+    const maxRetries = 20; 
+    let connected = false;
+
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const response = await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/version`);
+        if (response.ok) {
+          console.log("✅ Chrome is ready!");
+          connected = true;
+          break;
+        }
+      } catch (e) {
+        await new Promise(r => setTimeout(r, 500));
+      }
+    }
+
+    if (!connected) {
+      throw new Error('Chrome failed to start: Port 9222 unreachable after 10 seconds.');
+    }
   }
 
   public async initSession(sessionName: string) {
