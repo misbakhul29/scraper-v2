@@ -12,6 +12,7 @@ import { env } from './config/env';
 import { imageRouter } from './routes/image/route';
 import { rateLimit } from './middleware/rate-limit';
 import cors from 'cors';
+import { sessionMonitor } from './service/session-monitor.service';
 
 dotenv.config();
 
@@ -74,6 +75,8 @@ const startApp = async () => {
     await browserService.launch();
     await browserService.initSession(`session-${env.AI_PROVIDER}`);
     console.log('      ✅ Browser Ready');
+
+    sessionMonitor.start();
 
     console.log('[2/4] 🐰 Connecting to RabbitMQ...');
     try {

@@ -53,7 +53,7 @@ export const startWorker = async () => {
         Combine the subject content with the artistic tone and composition guidelines seamlessly.
         `.trim();
 
-        const imagePath = await AIService.generateImage(prompt);
+        const imagePath = await AIService.generateImage(prompt, imgData.webpFormat, imgData.imageMaxSizeKB);
 
         if (imgData.webhookUrl) {
           await sendWebhook(imgData.webhookUrl, {

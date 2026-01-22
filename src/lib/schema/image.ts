@@ -33,6 +33,20 @@ export const imageRequestSchema = z.object({
       description: 'URL Callback untuk menerima hasil (URL Gambar/Path)', 
       example: 'https://webhook.site/your-unique-id' 
     }),
+  webpFormat: z.boolean()
+    .optional()
+    .default(true)
+    .openapi({ 
+      description: 'Apakah format gambar harus dalam format WebP?', 
+      example: true 
+    }),
+  imageMaxSizeKB: z.number()
+    .optional()
+    .default(100)
+    .openapi({ 
+      description: 'Ukuran maksimum gambar dalam KB (100 KB default)', 
+      example: 100 
+    }),
 }).openapi('ImageRequest');
 
 export type ImageRequest = z.infer<typeof imageRequestSchema>;

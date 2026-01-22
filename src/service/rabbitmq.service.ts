@@ -3,6 +3,7 @@ import { env } from '../config/env';
 
 const QUEUE_NAME = 'scraping_queue';
 const RABBITMQ_URL = `amqp://${env.RABBITMQ_USER}:${env.RABBITMQ_PASSWORD}@${env.RABBITMQ_HOST}:${env.RABBITMQ_PORT}/`; 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class RabbitMQService {
   private connection: Connection | null = null;
@@ -57,11 +58,15 @@ export class RabbitMQService {
           console.log(`[Consumer] Processing job...`);
           
           await workerHandler(content);
+
+          console.log(`[Consumer] ⏳ Cooling down for 5 seconds...`);
+          await sleep(3000);
           
           this.channel?.ack(msg);
           console.log(`[Consumer] Job Done & Acked`);
         } catch (error) {
           console.error(`[Consumer] Job Failed:`, error);
+          await sleep(5000);
           this.channel?.ack(msg); 
         }
       }
