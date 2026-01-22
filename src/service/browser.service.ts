@@ -115,7 +115,6 @@ export class BrowserService {
       this.browserProcess = spawn('xvfb-run', [
         '-a', 
         '--server-args="-screen 0 1280x1024x24"', 
-        'nohup', 
         CHROME_PATH, 
         ...args
       ], { detached: true, stdio: 'ignore' });
