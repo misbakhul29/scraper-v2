@@ -13,6 +13,7 @@ const PROVIDERS = {
     DOWNLOAD_BTN_SELECTOR: 'button[data-test-id="download-generated-image-button"]',
     VIOLATION_SELECTOR: 'message-content', 
     VIOLATION_KEYWORDS: ["I can't create", "policy", "harmful", "unsafe", "election"],
+    EXPIRED_MODAL_SELECTOR: '[data-testid="modal-expired-session"]',
   },
   chatgpt: {
     WEB_URL: 'https://chatgpt.com',
@@ -34,6 +35,7 @@ const PROVIDERS = {
       "guardrails",
       "abuse prevention"
     ],
+    EXPIRED_MODAL_SELECTOR: '[data-testid="modal-expired-session"]',
   }
 };
 
