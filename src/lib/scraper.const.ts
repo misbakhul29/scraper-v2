@@ -21,7 +21,7 @@ const PROVIDERS = {
     PROMPT_INPUT_SELECTOR: '#prompt-textarea',
     COPY_BTN_SELECTOR: 'button[data-testid="copy-turn-action-button"]',
     LOGIN_BTN_SELECTOR: 'div[data-testid="accounts-profile-button"]',
-    VOICE_BTN_SELECTOR: 'button[aria-label="Start voice mode"]',
+    VOICE_BTN_SELECTOR: 'button[aria-label="Start Voice"]',
     TOOLS_BTN_SELECTOR: 'button[data-testid="composer-plus-btn"]',
     IMAGE_BTN_SELECTOR: '//div[@role="menuitemradio" and .//div[contains(text(), "Create image")]]',
     DOWNLOAD_BTN_SELECTOR: 'button[aria-label="Download this image"]',
