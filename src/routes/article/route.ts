@@ -1,8 +1,8 @@
-import { Router, Request, Response } from 'express';
-import { rabbitMQService } from '../../service/rabbitmq.service';
+import { Request, Response, Router } from 'express';
 import { ArticleRequest, publicArticleSchema } from '../../lib/schema';
-import { rateLimit } from '../../middleware/rate-limit';
 import { apiKeyAuth } from '../../middleware/auth';
+import { rateLimit } from '../../middleware/rate-limit';
+import { rabbitMQService } from '../../service/rabbitmq.service';
 
 export const articleRouter = Router();
 
@@ -23,8 +23,12 @@ articleRouter.post('/generate', rateLimit({ windowMs: 60_000, max: 3 }), apiKeyA
       message: 'Request accepted and queued for processing.',
       data: {
         topic: payload.topic,
+        keywords: payload.keywords || [],
+        category: payload.category || 'general',
+        tone: payload.tone || 'neutral',
         status: 'queued',
-        webhookUrl: payload.webhookUrl || 'Not provided (Result will be logged only)'
+        webhookUrl: payload.webhookUrl || 'Not provided (Result will be logged only)',
+        articleData: payload.articleData || {}
       }
     });
   } catch (error: any) {

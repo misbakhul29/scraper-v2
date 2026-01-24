@@ -92,6 +92,7 @@ export const startWorker = async () => {
             topic: artData.topic,
             title: title,
             content: cleanContent,
+            articleData: artData.articleData || {},
             status: 'completed'
           });
         } else {
@@ -117,7 +118,12 @@ export const startWorker = async () => {
 async function sendWebhook(url: string, payload: any) {
   console.log(`[Webhook] Sending result to: ${url}`);
   try {
-    await axios.post(url, payload);
+    await axios.post(url, payload, {
+      headers: {
+        'x-api-key': `${env.API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
     console.log('[Webhook] Sent successfully.');
   } catch (webhookError) {
     console.error('[Webhook] Failed to send:', webhookError);
