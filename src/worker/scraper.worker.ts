@@ -1,14 +1,15 @@
 import axios from 'axios';
-import { rabbitMQService } from '../service/rabbitmq.service';
-import { AiScraperService } from '../service/scraper.service';
-import { TonePrompts, Tone } from '../lib/tone'; 
+import { env } from '../config/env';
+import { getPublicImageUrl } from '../helper/cdn-url';
+import { getAspectRatioInstruction } from '../lib/enum/aspect-ratio';
+import { extractTitleAndCleanContent } from '../lib/helper/article';
+import { production } from '../lib/node-env';
 import { ArticleRequest } from '../lib/schema';
 import { ImageRequest } from '../lib/schema/image';
+import { Tone, TonePrompts } from '../lib/tone';
 import { ToneImage, ToneImagePrompts } from '../lib/tone/image';
-import { getAspectRatioInstruction } from '../lib/enum/aspect-ratio';
-import { getPublicImageUrl } from '../helper/cdn-url';
-import { env } from '../config/env';
-import { production } from '../lib/node-env';
+import { rabbitMQService } from '../service/rabbitmq.service';
+import { AiScraperService } from '../service/scraper.service';
 
 const AIService = new AiScraperService();
 
@@ -18,7 +19,7 @@ export const startWorker = async () => {
   console.log('👷 Starting Worker...');
 
   await rabbitMQService.consume(async (data: JobPayload) => {
-    
+
     const jobType = data.type || 'ARTICLE_GENERATION';
 
     console.log(`[Worker] Processing Job Type: ${jobType}`);
@@ -59,7 +60,7 @@ export const startWorker = async () => {
           await sendWebhook(imgData.webhookUrl, {
             type: 'IMAGE',
             prompt: imgData.prompt,
-            imagePath: env.NODE_ENV == production ? getPublicImageUrl(imagePath) : imagePath, 
+            imagePath: env.NODE_ENV == production ? getPublicImageUrl(imagePath) : imagePath,
             status: 'completed'
           });
         } else {
@@ -83,12 +84,14 @@ export const startWorker = async () => {
         console.log(`[Worker] Generating Article: "${artData.topic}" (${selectedTone})`);
 
         const result = await AIService.generateContent(prompt);
+        const { title, cleanContent } = extractTitleAndCleanContent(result);
 
         if (artData.webhookUrl) {
           await sendWebhook(artData.webhookUrl, {
             type: 'ARTICLE',
             topic: artData.topic,
-            content: result,
+            title: title,
+            content: cleanContent,
             status: 'completed'
           });
         } else {
@@ -98,7 +101,7 @@ export const startWorker = async () => {
 
     } catch (error: any) {
       console.error(`[Worker] Processing failed: ${error.message}`);
-      
+
       if (data.webhookUrl) {
         await sendWebhook(data.webhookUrl, {
           type: jobType === 'IMAGE_GENERATION' ? 'IMAGE' : 'ARTICLE',

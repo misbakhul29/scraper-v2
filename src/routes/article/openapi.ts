@@ -1,6 +1,6 @@
+import { z } from 'zod';
 import { registry } from '../../lib/openapi.registry';
 import { publicArticleSchema } from '../../lib/schema';
-import { z } from 'zod';
 
 const SuccessResponseSchema = z.object({
   success: z.boolean(),
@@ -8,7 +8,8 @@ const SuccessResponseSchema = z.object({
   data: z.object({
     topic: z.string(),
     status: z.string(),
-    webhookUrl: z.string()
+    title: z.string(),
+    content: z.string()
   })
 });
 
