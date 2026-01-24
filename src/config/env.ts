@@ -6,6 +6,7 @@ export const env = {
   HOST: process.env.HOST || 'localhost',
   PORT: process.env.PORT || '3000',
   PROD_HOST: process.env.PROD_HOST,
+  API_KEY: process.env.API_KEY,
   CDN_BASE_URL: process.env.CDN_BASE_URL,
   AI_PROVIDER: process.env.AI_PROVIDER || 'chatgpt', 
   DEBUG_PORT: process.env.DEBUG_PORT || '9222',
